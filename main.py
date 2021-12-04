@@ -19,6 +19,13 @@ BLUE_enemy = pygame.image.load(os.path.join("assets", "enemy_blue.png"))
 
 #Load music
 pygame.mixer.music.load(os.path.join("assets", "Main_Music.wav"))
+Damaged_Sound = pygame.mixer.Sound(os.path.join("assets", "Damaged_Sound.wav"))
+Hit_Sound = pygame.mixer.Sound(os.path.join("assets", "Hit_Sound.wav"))
+Gameover_Sound = pygame.mixer.Sound(os.path.join("assets", "Gameover_Sound.wav"))
+Selection_Sound = pygame.mixer.Sound(os.path.join("assets", "Selection_Sound.wav"))
+Shoot_Sound = pygame.mixer.Sound(os.path.join("assets", "Shoot_Sound.wav"))
+Start_Sound = pygame.mixer.Sound(os.path.join("assets", "Start_Sound.wav"))
+
 
 # Player player
 Fighter_Ship = pygame.image.load(os.path.join("assets", "fighter.png"))
@@ -34,6 +41,7 @@ BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background
 BGY = 0
 BGY2 = BG.get_height()*-1
 Logo = pygame.image.load(os.path.join("assets", "LOGO.png"))
+Live = pygame.image.load(os.path.join("assets", "Live.png"))
 
 class Laser:
     def __init__(self, x, y, img):
@@ -72,13 +80,16 @@ class Ship:
         for laser in self.lasers:
             laser.draw(window)
 
-    def move_lasers(self, vel, obj):
+    def move_lasers(self, vel, obj, player=False):
         self.cooldown()
         for laser in self.lasers:
             laser.move(vel)
             if laser.off_screen(HEIGHT):
                 self.lasers.remove(laser)
             elif laser.collision(obj):
+                if player:
+                    Damaged_Sound.play()
+                
                 obj.health -= 10
                 self.lasers.remove(laser)
 
@@ -118,6 +129,7 @@ class Player(Ship):
             else:
                 for obj in objs:
                     if laser.collision(obj):
+                        Hit_Sound.play()
                         objs.remove(obj)
                         if laser in self.lasers:
                             self.lasers.remove(laser)
@@ -174,8 +186,9 @@ def main(mode):
     run = True
     FPS = 60
     level = 0
+    level_rank = [' ','F','D','C','B','A','S']
     lives = 5
-    main_font = pygame.font.SysFont("comicsans", 50)
+    main_font = pygame.font.SysFont("comicsans", 35)
     lost_font = pygame.font.SysFont("comicsans", 60)
 
     enemies = []
@@ -194,11 +207,12 @@ def main(mode):
 
     def redraw_window():
         # draw text
-        lives_label = main_font.render(f"Lives: {lives}", 1, (255,255,255))
-        level_label = main_font.render(f"Level: {level}", 1, (255,255,255))
+        Rank_label = main_font.render("Rank: "+level_rank[level], 1, (255,255,255))
 
-        WIN.blit(lives_label, (10, 10))
-        WIN.blit(level_label, (WIDTH - level_label.get_width() - 10, 10))
+        WIN.blit(Rank_label, (10, 50))
+
+        for i in range(lives):
+            WIN.blit(Live, (10+25*i,10))
 
         for enemy in enemies:
             enemy.draw(WIN)
@@ -207,7 +221,9 @@ def main(mode):
 
         if lost:
             lost_label = lost_font.render("You Lost!!", 1, (255,255,255))
+            Final_label = lost_font.render("Your rank is "+level_rank[level], 1, (255,255,255))
             WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 350))
+            WIN.blit(Final_label, (WIDTH/2 - Final_label.get_width()/2, 420))
 
         pygame.display.update()
 
@@ -276,6 +292,8 @@ def main(mode):
             lost_count += 1
 
         if lost:
+            if lost_count == FPS:
+                Gameover_Sound.play()
             if lost_count > FPS * 3:
                 pygame.mixer.music.play(-1)
                 run = False
@@ -304,6 +322,7 @@ def main(mode):
             if keys[pygame.K_s] and player.y + player_vel + player.get_height() + 15 < HEIGHT: # down
                 player.y += player_vel
             if keys[pygame.K_SPACE]:
+                Shoot_Sound.play()
                 player.shoot()
         elif mode == 'motion_mode':
             if len(lmList) != 0:
@@ -319,12 +338,13 @@ def main(mode):
 
         for enemy in enemies[:]:
             enemy.move(enemy_vel)
-            enemy.move_lasers(laser_vel, player)
+            enemy.move_lasers(laser_vel, player, player=True)
 
             if random.randrange(0, 2*60) == 1:
                 enemy.shoot()
 
             if collide(enemy, player):
+                Damaged_Sound.play()
                 player.health -= 10
                 enemies.remove(enemy)
             elif enemy.y + enemy.get_height() > HEIGHT:
@@ -359,25 +379,33 @@ def main_menu():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     if selectionY == 400:
+                        Start_Sound.play()
                         main('keyboard_mode')
                     elif selectionY == 450:
+                        Start_Sound.play()
                         main('motion_mode')
+                    elif selectionY == 500:
+                        Start_Sound.play()
+                        option_menu()
                     elif selectionY == 550:
+                        Start_Sound.play()
                         credit_menu()
                 elif event.key == pygame.K_s:
                     if selectionY >= 550:
                         selectionY += 0
                     else:
+                        Selection_Sound.play()
                         selectionY += 50
                 elif event.key == pygame.K_w:
                     if selectionY <= 400:
                         selectionY -= 0
                     else:
+                        Selection_Sound.play()
                         selectionY -= 50
     pygame.quit()
 
 def credit_menu():
-    mode_font = pygame.font.SysFont("comicsans", 35)
+    mode_font = pygame.font.SysFont("comicsans", 27)
     run = True
 
     while run:
@@ -385,14 +413,12 @@ def credit_menu():
 
         label1 = mode_font.render("Daeho Go", 1, (255,255,255))
         label2 = mode_font.render("Seungjoon Yang", 1, (255,255,255))
-        label3 = mode_font.render("Junghun Oh", 1, (255,255,255))
+        label3 = mode_font.render("Junghoon Oh", 1, (255,255,255))
         label4 = mode_font.render("Music special thanks to Seungwoo Yang", 1, (255,255,255))
         WIN.blit(label1, (WIDTH/2 - 160, 200))
         WIN.blit(label2, (WIDTH/2 - 160, 250))
         WIN.blit(label3, (WIDTH/2 - 160, 300))
         WIN.blit(label4, (WIDTH/2 - 160, 400))
-
-        pygame.display.update()
 
         pygame.display.update()
         for event in pygame.event.get():
@@ -401,5 +427,23 @@ def credit_menu():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     run = False
+
+def option_menu():
+
+    run = True
+    example = pygame.font.SysFont("comicsans", 35)
+    while run:
+        WIN.blit(BG,(0,0))
+        ex_label = example.render("This is Example",1,(255,255,255))
+        WIN.blit(ex_label, (WIDTH/2-ex_label.get_width()/2, HEIGHT/2-ex_label.get_height()/2))
+        pygame.display.update()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    run = False
+
 
 main_menu()
