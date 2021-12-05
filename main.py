@@ -25,6 +25,8 @@ Gameover_Sound = pygame.mixer.Sound(os.path.join("assets", "Gameover_Sound.wav")
 Selection_Sound = pygame.mixer.Sound(os.path.join("assets", "Selection_Sound.wav"))
 Shoot_Sound = pygame.mixer.Sound(os.path.join("assets", "Shoot_Sound.wav"))
 Start_Sound = pygame.mixer.Sound(os.path.join("assets", "Start_Sound.wav"))
+global Soundcheck
+Soundcheck = True
 
 
 # Player player
@@ -295,7 +297,8 @@ def main(mode):
             if lost_count == FPS:
                 Gameover_Sound.play()
             if lost_count > FPS * 3:
-                pygame.mixer.music.play(-1)
+                if Soundcheck:
+                    pygame.mixer.music.play(-1)
                 run = False
             else:
                 continue
@@ -354,10 +357,14 @@ def main(mode):
         player.move_lasers(-laser_vel, enemies)
 
 def main_menu():
+    global Soundcheck
     mode_font = pygame.font.SysFont("comicsans", 35)
     run = True
     selectionY = 400
-    pygame.mixer.music.play(-1)
+    if Soundcheck == True:
+        pygame.mixer.music.play()
+    else:
+        pygame.mixer.music.stop()
     while run:
         WIN.blit(BG, (0,0))
         WIN.blit(Logo, (int(WIDTH/2-Logo.get_width()/2), 100))
@@ -429,13 +436,22 @@ def credit_menu():
                     run = False
 
 def option_menu():
-
+    
+    global Soundcheck
+    Soundcheck = True
+    mode_font = pygame.font.SysFont("comicsans", 35)
     run = True
-    example = pygame.font.SysFont("comicsans", 35)
+    selectionY = 400
+    
     while run:
         WIN.blit(BG,(0,0))
-        ex_label = example.render("This is Example",1,(255,255,255))
-        WIN.blit(ex_label, (WIDTH/2-ex_label.get_width()/2, HEIGHT/2-ex_label.get_height()/2))
+        soundon_label = mode_font.render("Sound ON", 1, (255,255,255))
+        soundoff_label = mode_font.render("Sound OFF", 1, (255,255,255))
+        Back_label = mode_font.render("Back", 1, (255,255,255))
+        WIN.blit(soundon_label, (WIDTH/2 - 160, 400))
+        WIN.blit(soundoff_label, (WIDTH/2 - 160, 450))
+        WIN.blit(Back_label, (WIDTH/2 - 160, 500))
+        pygame.draw.polygon(WIN, (255,255,255), [[WIDTH/2-200,selectionY],[WIDTH/2-200,selectionY+20],[WIDTH/2-170,selectionY+10]])
         pygame.display.update()
         
         for event in pygame.event.get():
@@ -443,7 +459,33 @@ def option_menu():
                 quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    run = False
+                    if selectionY == 400:
+                        Start_Sound.play()
+                        pygame.mixer.music.play()
+                        Soundcheck = True
+                    elif selectionY == 450:
+                        Start_Sound.play()
+                        pygame.mixer.music.stop()
+                        Soundcheck = False
+                    elif selectionY == 500:
+                        Start_Sound.play()
+                        main_menu()
+                elif event.key == pygame.K_s:
+                    if selectionY >= 500:
+                        selectionY += 0
+                    else:
+                        Selection_Sound.play()
+                        selectionY += 50
+                elif event.key == pygame.K_w:
+                    if selectionY <= 400:
+                        selectionY -= 0
+                    else:
+                        Selection_Sound.play()
+                        selectionY -= 50
+           
+        
+      
+    pygame.quit()
 
 
 main_menu()
